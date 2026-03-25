@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Save, Settings, Users, Shield } from 'lucide-react';
+import { Save, Settings, Shield } from 'lucide-react';
 import { api } from '../services/api.js';
 import { PageLoader } from '../components/ui/LoadingSpinner.js';
 import { Modal } from '../components/ui/Modal.js';
@@ -48,7 +48,7 @@ export function SettingsPage() {
     setSaving(true);
     try {
       await api.put('/plannings/settings', form);
-      toast.success('Param\u00e8tres enregistr\u00e9s');
+      toast.success('Paramètres enregistrés');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erreur');
     } finally { setSaving(false); }
@@ -57,7 +57,7 @@ export function SettingsPage() {
   const handleCreateUser = async () => {
     try {
       await api.post('/auth/users', userForm);
-      toast.success('Utilisateur cr\u00e9\u00e9');
+      toast.success('Utilisateur créé');
       setUserModal(false);
       fetchData();
     } catch (err) {
@@ -69,7 +69,7 @@ export function SettingsPage() {
     if (userId === currentUser?.id) { toast.error('Impossible de supprimer votre propre compte'); return; }
     try {
       await api.delete(`/auth/users/${userId}`);
-      toast.success('Utilisateur supprim\u00e9');
+      toast.success('Utilisateur supprimé');
       fetchData();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erreur');
@@ -83,26 +83,26 @@ export function SettingsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">Param\u00e8tres</h1>
-        <p className="text-gray-500 mt-1">Configuration de l'\u00e9tablissement</p>
+        <h1 className="text-2xl font-bold">Paramètres</h1>
+        <p className="text-gray-500 mt-1">Configuration de l'établissement</p>
       </div>
 
       <div className="space-y-6">
         <div className="card p-6">
           <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
-            <Settings className="w-5 h-5" /> \u00c9tablissement
+            <Settings className="w-5 h-5" /> Établissement
           </h2>
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2"><label className="label">Nom de l'\u00e9tablissement</label>
+            <div className="col-span-2"><label className="label">Nom de l'établissement</label>
               <input className="input" value={form.establishmentName}
                 onChange={(e) => setForm({ ...form, establishmentName: e.target.value })} /></div>
-            <div><label className="label">Max heures/jour (d\u00e9faut)</label>
+            <div><label className="label">Max heures/jour (défaut)</label>
               <input type="number" className="input" value={form.defaultMaxHoursPerDay}
                 onChange={(e) => setForm({ ...form, defaultMaxHoursPerDay: parseFloat(e.target.value) })} /></div>
-            <div><label className="label">Max heures/semaine (d\u00e9faut)</label>
+            <div><label className="label">Max heures/semaine (défaut)</label>
               <input type="number" className="input" value={form.defaultMaxHoursPerWeek}
                 onChange={(e) => setForm({ ...form, defaultMaxHoursPerWeek: parseFloat(e.target.value) })} /></div>
-            <div><label className="label">Max heures/mois (d\u00e9faut)</label>
+            <div><label className="label">Max heures/mois (défaut)</label>
               <input type="number" className="input" value={form.defaultMaxHoursPerMonth}
                 onChange={(e) => setForm({ ...form, defaultMaxHoursPerMonth: parseFloat(e.target.value) })} /></div>
           </div>
@@ -154,14 +154,14 @@ export function SettingsPage() {
             <input type="email" className="input" value={userForm.email} onChange={(e) => setUserForm({ ...userForm, email: e.target.value })} /></div>
           <div><label className="label">Mot de passe</label>
             <input type="password" className="input" value={userForm.password} onChange={(e) => setUserForm({ ...userForm, password: e.target.value })} /></div>
-          <div><label className="label">R\u00f4le</label>
+          <div><label className="label">Rôle</label>
             <select className="input" value={userForm.role} onChange={(e) => setUserForm({ ...userForm, role: e.target.value as UserRole })}>
               {USER_ROLES.map((r) => <option key={r} value={r}>{roleLabels[r]}</option>)}
             </select></div>
           <div className="flex justify-end gap-3 pt-4">
             <button onClick={() => setUserModal(false)} className="btn-secondary">Annuler</button>
             <button onClick={handleCreateUser} disabled={!userForm.name || !userForm.email || !userForm.password}
-              className="btn-primary">Cr\u00e9er</button>
+              className="btn-primary">Créer</button>
           </div>
         </div>
       </Modal>

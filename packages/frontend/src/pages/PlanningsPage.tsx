@@ -11,8 +11,8 @@ import toast from 'react-hot-toast';
 
 const statusLabels: Record<string, { label: string; class: string; icon: typeof Calendar }> = {
   draft: { label: 'Brouillon', class: 'badge-gray', icon: FileEdit },
-  generated: { label: 'G\u00e9n\u00e9r\u00e9', class: 'badge-blue', icon: Zap },
-  published: { label: 'Publi\u00e9', class: 'badge-green', icon: CheckCircle },
+  generated: { label: 'Généré', class: 'badge-blue', icon: Zap },
+  published: { label: 'Publié', class: 'badge-green', icon: CheckCircle },
 };
 
 export function PlanningsPage() {
@@ -45,7 +45,7 @@ export function PlanningsPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const addSlotDef = () => {
-    if (positions.length === 0) { toast.error('Cr\u00e9ez d\'abord des postes'); return; }
+    if (positions.length === 0) { toast.error('Créez d\'abord des postes'); return; }
     setSlotDefs([...slotDefs, {
       positionId: positions[0]!.id, startTime: '11:00', endTime: '15:00', headcount: 1,
       days: [true, true, true, true, true, true, true],
@@ -53,19 +53,18 @@ export function PlanningsPage() {
   };
 
   const handleCreate = async () => {
-    if (!form.startDate || !form.endDate) { toast.error('S\u00e9lectionnez les dates'); return; }
+    if (!form.startDate || !form.endDate) { toast.error('Sélectionnez les dates'); return; }
     if (slotDefs.length === 0) { toast.error('Ajoutez au moins un besoin'); return; }
 
     setCreating(true);
     try {
-      // G\u00e9n\u00e9rer les requirements pour chaque jour
       const requirements: { positionId: number; date: string; startTime: string; endTime: string; headcount: number }[] = [];
       const start = new Date(form.startDate);
       const end = new Date(form.endDate);
 
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const dayIndex = d.getDay(); // 0=dim, 1=lun...
-        const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1; // 0=lun..6=dim
+        const dayIndex = d.getDay();
+        const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1;
         const dateStr = d.toISOString().substring(0, 10);
 
         for (const slot of slotDefs) {
@@ -81,14 +80,14 @@ export function PlanningsPage() {
         }
       }
 
-      if (requirements.length === 0) { toast.error('Aucun cr\u00e9neau g\u00e9n\u00e9r\u00e9'); return; }
+      if (requirements.length === 0) { toast.error('Aucun créneau généré'); return; }
 
       const planning = await api.post<{ id: number }>('/plannings', {
         startDate: form.startDate, endDate: form.endDate,
         requirements, seed: form.seed,
       });
 
-      toast.success('Planning cr\u00e9\u00e9');
+      toast.success('Planning créé');
       setModalOpen(false);
       navigate(`/plannings/${planning.id}`);
     } catch (err) {
@@ -100,7 +99,7 @@ export function PlanningsPage() {
     if (!deletePlanning) return;
     try {
       await api.delete(`/plannings/${deletePlanning.id}`);
-      toast.success('Planning supprim\u00e9');
+      toast.success('Planning supprimé');
       fetchData();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erreur');
@@ -125,8 +124,8 @@ export function PlanningsPage() {
 
       {plannings.length === 0 ? (
         <EmptyState icon={Calendar} title="Aucun planning"
-          description="Cr\u00e9ez votre premier planning pour commencer la planification."
-          action={{ label: 'Cr\u00e9er un planning', onClick: () => setModalOpen(true) }} />
+          description="Créez votre premier planning pour commencer la planification."
+          action={{ label: 'Créer un planning', onClick: () => setModalOpen(true) }} />
       ) : (
         <div className="space-y-4">
           {plannings.map((p) => {
@@ -140,7 +139,7 @@ export function PlanningsPage() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-lg">
-                        {new Date(p.startDate).toLocaleDateString('fr-FR')} \u2014 {new Date(p.endDate).toLocaleDateString('fr-FR')}
+                        {new Date(p.startDate).toLocaleDateString('fr-FR')} — {new Date(p.endDate).toLocaleDateString('fr-FR')}
                       </h3>
                       <div className="flex items-center gap-3 mt-1">
                         <span className={status.class}>{status.label}</span>
@@ -168,20 +167,20 @@ export function PlanningsPage() {
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Nouveau planning" size="xl">
         <div className="space-y-6">
           <div className="grid grid-cols-3 gap-4">
-            <div><label className="label">Date de d\u00e9but</label>
+            <div><label className="label">Date de début</label>
               <input type="date" className="input" value={form.startDate}
                 onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
             <div><label className="label">Date de fin</label>
               <input type="date" className="input" value={form.endDate}
                 onChange={(e) => setForm({ ...form, endDate: e.target.value })} /></div>
-            <div><label className="label">Seed (reproductibilit\u00e9)</label>
+            <div><label className="label">Seed (reproductibilité)</label>
               <input type="number" className="input" value={form.seed}
                 onChange={(e) => setForm({ ...form, seed: parseInt(e.target.value) || 42 })} /></div>
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-3">
-              <label className="label mb-0">Besoins par cr\u00e9neau</label>
+              <label className="label mb-0">Besoins par créneau</label>
               <button onClick={addSlotDef} className="btn-secondary btn-sm"><Plus className="w-3 h-3" /> Ajouter</button>
             </div>
             {slotDefs.map((slot, i) => (
@@ -217,7 +216,7 @@ export function PlanningsPage() {
           <div className="flex justify-end gap-3">
             <button onClick={() => setModalOpen(false)} className="btn-secondary">Annuler</button>
             <button onClick={handleCreate} disabled={creating} className="btn-primary">
-              {creating ? 'Cr\u00e9ation...' : 'Cr\u00e9er le planning'}
+              {creating ? 'Création...' : 'Créer le planning'}
             </button>
           </div>
         </div>

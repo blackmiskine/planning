@@ -72,7 +72,7 @@ export function EmployeeDetailPage() {
   const saveInfo = async () => {
     try {
       await api.put(`/employees/${id}`, form);
-      toast.success('Informations mises \u00e0 jour');
+      toast.success('Informations mises à jour');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erreur');
     }
@@ -85,7 +85,7 @@ export function EmployeeDetailPage() {
     try {
       await api.put(`/employees/${id}/skills`, ratings);
       await api.put(`/employees/${id}/work-limits`, workLimits);
-      toast.success('Comp\u00e9tences et limites mises \u00e0 jour');
+      toast.success('Compétences et limites mises à jour');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erreur');
     }
@@ -94,7 +94,7 @@ export function EmployeeDetailPage() {
   const addUnavailability = async () => {
     try {
       await api.post(`/employees/${id}/unavailabilities`, unavForm);
-      toast.success('Indisponibilit\u00e9 ajout\u00e9e');
+      toast.success('Indisponibilité ajoutée');
       const unav = await api.get<Unavailability[]>(`/employees/${id}/unavailabilities`);
       setUnavailabilities(unav);
     } catch (err) {
@@ -106,7 +106,7 @@ export function EmployeeDetailPage() {
     try {
       await api.delete(`/employees/${id}/unavailabilities/${unavId}`);
       setUnavailabilities((prev) => prev.filter((u) => u.id !== unavId));
-      toast.success('Indisponibilit\u00e9 supprim\u00e9e');
+      toast.success('Indisponibilité supprimée');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erreur');
     }
@@ -115,7 +115,7 @@ export function EmployeeDetailPage() {
   const handleDelete = async () => {
     try {
       await api.delete(`/employees/${id}`);
-      toast.success('Employ\u00e9 supprim\u00e9');
+      toast.success('Employé supprimé');
       navigate('/employees');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erreur');
@@ -126,8 +126,8 @@ export function EmployeeDetailPage() {
 
   const tabs = [
     { key: 'info', label: 'Informations', icon: Star },
-    { key: 'skills', label: 'Comp\u00e9tences & Limites', icon: Star },
-    { key: 'availability', label: 'Disponibilit\u00e9s', icon: CalendarIcon },
+    { key: 'skills', label: 'Compétences & Limites', icon: Star },
+    { key: 'availability', label: 'Disponibilités', icon: CalendarIcon },
   ] as const;
 
   return (
@@ -139,7 +139,7 @@ export function EmployeeDetailPage() {
           </button>
           <div>
             <h1 className="text-2xl font-bold">{employee.firstName} {employee.lastName}</h1>
-            <p className="text-gray-500">{employee.contractType} \u2014 {employee.email}</p>
+            <p className="text-gray-500">{employee.contractType} — {employee.email}</p>
           </div>
         </div>
         <button onClick={() => setDeleteOpen(true)} className="btn-danger btn-sm">
@@ -161,13 +161,13 @@ export function EmployeeDetailPage() {
       {activeTab === 'info' && (
         <div className="card p-6">
           <div className="grid grid-cols-2 gap-4">
-            <div><label className="label">Pr\u00e9nom</label>
+            <div><label className="label">Prénom</label>
               <input className="input" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} /></div>
             <div><label className="label">Nom</label>
               <input className="input" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} /></div>
             <div><label className="label">Email</label>
               <input type="email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-            <div><label className="label">T\u00e9l\u00e9phone</label>
+            <div><label className="label">Téléphone</label>
               <input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
             <div><label className="label">Date d'embauche</label>
               <input type="date" className="input" value={form.hireDate} onChange={(e) => setForm({ ...form, hireDate: e.target.value })} /></div>
@@ -189,7 +189,7 @@ export function EmployeeDetailPage() {
       {activeTab === 'skills' && (
         <div className="space-y-6">
           <div className="card p-6">
-            <h3 className="font-semibold mb-4">Notes par comp\u00e9tence</h3>
+            <h3 className="font-semibold mb-4">Notes par compétence</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {skills.map((skill) => (
                 <div key={skill.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -223,14 +223,14 @@ export function EmployeeDetailPage() {
       {activeTab === 'availability' && (
         <div className="space-y-6">
           <div className="card p-6">
-            <h3 className="font-semibold mb-4">Ajouter une indisponibilit\u00e9</h3>
+            <h3 className="font-semibold mb-4">Ajouter une indisponibilité</h3>
             <div className="grid grid-cols-2 gap-4">
               <div><label className="label">Type</label>
                 <select className="input" value={unavForm.type}
                   onChange={(e) => setUnavForm({ ...unavForm, type: e.target.value as UnavailabilityType })}>
-                  <option value="full_day">Journ\u00e9e compl\u00e8te</option>
-                  <option value="time_slot">Cr\u00e9neau horaire</option>
-                  <option value="recurring">R\u00e9current</option>
+                  <option value="full_day">Journée complète</option>
+                  <option value="time_slot">Créneau horaire</option>
+                  <option value="recurring">Récurrent</option>
                 </select></div>
               {unavForm.type !== 'recurring' && (
                 <div><label className="label">Date</label>
@@ -246,7 +246,7 @@ export function EmployeeDetailPage() {
               )}
               {unavForm.type !== 'full_day' && (
                 <>
-                  <div><label className="label">Heure d\u00e9but</label>
+                  <div><label className="label">Heure début</label>
                     <input type="time" className="input" value={unavForm.startTime}
                       onChange={(e) => setUnavForm({ ...unavForm, startTime: e.target.value })} /></div>
                   <div><label className="label">Heure fin</label>
@@ -264,18 +264,18 @@ export function EmployeeDetailPage() {
           </div>
 
           <div className="card p-6">
-            <h3 className="font-semibold mb-4">Indisponibilit\u00e9s enregistr\u00e9es ({unavailabilities.length})</h3>
+            <h3 className="font-semibold mb-4">Indisponibilités enregistrées ({unavailabilities.length})</h3>
             {unavailabilities.length === 0 ? (
-              <p className="text-sm text-gray-500">Aucune indisponibilit\u00e9 d\u00e9clar\u00e9e</p>
+              <p className="text-sm text-gray-500">Aucune indisponibilité déclarée</p>
             ) : (
               <div className="space-y-2">
                 {unavailabilities.map((u) => (
                   <div key={u.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="text-sm">
                       <span className="font-medium">
-                        {u.type === 'full_day' && `Journ\u00e9e compl\u00e8te \u2014 ${u.date}`}
-                        {u.type === 'time_slot' && `${u.date} de ${u.startTime} \u00e0 ${u.endTime}`}
-                        {u.type === 'recurring' && `Chaque ${u.dayOfWeek}${u.startTime ? ` de ${u.startTime} \u00e0 ${u.endTime}` : ''}`}
+                        {u.type === 'full_day' && `Journée complète — ${u.date}`}
+                        {u.type === 'time_slot' && `${u.date} de ${u.startTime} à ${u.endTime}`}
+                        {u.type === 'recurring' && `Chaque ${u.dayOfWeek}${u.startTime ? ` de ${u.startTime} à ${u.endTime}` : ''}`}
                       </span>
                       {u.reason && <span className="text-gray-500 ml-2">({u.reason})</span>}
                     </div>
@@ -291,8 +291,8 @@ export function EmployeeDetailPage() {
       )}
 
       <ConfirmDialog isOpen={deleteOpen} onClose={() => setDeleteOpen(false)} onConfirm={handleDelete}
-        title="Supprimer l'employ\u00e9" danger
-        message={`Supprimer ${employee.firstName} ${employee.lastName} ? Toutes ses donn\u00e9es seront perdues.`}
+        title="Supprimer l'employé" danger
+        message={`Supprimer ${employee.firstName} ${employee.lastName} ? Toutes ses données seront perdues.`}
         confirmText="Supprimer" />
     </div>
   );
