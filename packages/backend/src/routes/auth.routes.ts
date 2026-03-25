@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authService } from '../services/auth.service.js';
+import { getDatabase } from '../config/database.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { LoginSchema, UserCreateSchema, UserUpdateSchema } from '@planning/shared';
@@ -12,7 +13,7 @@ router.post('/login', validate(LoginSchema), (req: Request, res: Response) => {
 });
 
 router.get('/me', authenticate, (req: Request, res: Response) => {
-  const db = (await import('../config/database.js')).getDatabase();
+  const db = getDatabase();
   const user = db.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?').get(req.user!.userId);
   res.json({ success: true, data: user });
 });
