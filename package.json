@@ -1,0 +1,50 @@
+{
+  "name": "planning-rh",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Application de planification RH pour hôtel-restaurant",
+  "workspaces": [
+    "packages/shared",
+    "packages/backend",
+    "packages/frontend",
+    "packages/electron"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run dev -w packages/backend",
+    "dev:frontend": "npm run dev -w packages/frontend",
+    "build": "npm run build -w packages/shared && npm run build -w packages/backend && npm run build -w packages/frontend",
+    "build:shared": "npm run build -w packages/shared",
+    "build:backend": "npm run build -w packages/backend",
+    "build:frontend": "npm run build -w packages/frontend",
+    "build:electron": "npm run build -w packages/electron",
+    "start": "npm run start -w packages/backend",
+    "test": "npm run test --workspaces --if-present",
+    "test:backend": "npm run test -w packages/backend",
+    "test:frontend": "npm run test -w packages/frontend",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --write \"packages/**/*.{ts,tsx,json,css}\"",
+    "format:check": "prettier --check \"packages/**/*.{ts,tsx,json,css}\"",
+    "migrate": "npm run migrate -w packages/backend",
+    "migrate:rollback": "npm run migrate:rollback -w packages/backend",
+    "seed": "npm run seed -w packages/backend",
+    "electron:dev": "npm run dev -w packages/electron",
+    "electron:build": "npm run build:dmg -w packages/electron",
+    "clean": "rm -rf packages/*/dist packages/*/node_modules node_modules"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier": "^3.2.4",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
