@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Zap, Download, FileSpreadsheet, Send, AlertTriangle,
-  CheckCircle, UserPlus, Trash2, BarChart3,
+  UserPlus, Trash2,
 } from 'lucide-react';
 import { api } from '../services/api.js';
 import { Modal } from '../components/ui/Modal.js';
@@ -41,7 +41,7 @@ export function PlanningDetailPage() {
       const result = await api.post<{ planning: PlanningWithDetails; report: PlanningQualityReport }>(`/plannings/${id}/generate`);
       setPlanning(result.planning);
       setReport(result.report);
-      toast.success(`Planning g\u00e9n\u00e9r\u00e9 \u2014 Score : ${result.report.overallScore.toFixed(0)}/100`);
+      toast.success(`Planning généré — Score : ${result.report.overallScore.toFixed(0)}/100`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erreur');
     } finally { setGenerating(false); }
@@ -50,7 +50,7 @@ export function PlanningDetailPage() {
   const handlePublish = async () => {
     try {
       await api.post(`/plannings/${id}/publish`);
-      toast.success('Planning publi\u00e9');
+      toast.success('Planning publié');
       fetchData();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erreur');
@@ -63,7 +63,7 @@ export function PlanningDetailPage() {
       await api.post(`/plannings/${id}/assignments`, {
         slotRequirementId: slotId, employeeId: selectedEmployee, force: false,
       });
-      toast.success('Affectation ajout\u00e9e');
+      toast.success('Affectation ajoutée');
       setAssignModal(null);
       fetchData();
     } catch (err) {
@@ -72,7 +72,7 @@ export function PlanningDetailPage() {
         await api.post(`/plannings/${id}/assignments`, {
           slotRequirementId: slotId, employeeId: selectedEmployee, force: true,
         });
-        toast.success('Affectation forc\u00e9e');
+        toast.success('Affectation forcée');
         setAssignModal(null);
         fetchData();
       } else {
@@ -84,7 +84,7 @@ export function PlanningDetailPage() {
   const handleRemoveAssignment = async (assignmentId: number) => {
     try {
       await api.delete(`/plannings/${id}/assignments/${assignmentId}`);
-      toast.success('Affectation supprim\u00e9e');
+      toast.success('Affectation supprimée');
       fetchData();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erreur');
@@ -93,7 +93,6 @@ export function PlanningDetailPage() {
 
   if (loading || !planning) return <PageLoader />;
 
-  // Regrouper par date
   const dateGroups = new Map<string, typeof planning.requirements>();
   for (const req of planning.requirements) {
     if (!dateGroups.has(req.date)) dateGroups.set(req.date, []);
@@ -104,14 +103,12 @@ export function PlanningDetailPage() {
   const getAssignmentsForSlot = (slotId: number) =>
     planning.assignments.filter((a) => a.slotRequirementId === slotId);
 
-  // Vue par employ\u00e9
   const employeeAssignments = new Map<number, Assignment[]>();
   for (const a of planning.assignments) {
     if (!employeeAssignments.has(a.employeeId)) employeeAssignments.set(a.employeeId, []);
     employeeAssignments.get(a.employeeId)!.push(a);
   }
 
-  // Vue par poste
   const positionAssignments = new Map<string, Assignment[]>();
   for (const a of planning.assignments) {
     const key = a.positionName || 'Inconnu';
@@ -128,11 +125,11 @@ export function PlanningDetailPage() {
           </button>
           <div>
             <h1 className="text-2xl font-bold">
-              {new Date(planning.startDate).toLocaleDateString('fr-FR')} \u2014 {new Date(planning.endDate).toLocaleDateString('fr-FR')}
+              {new Date(planning.startDate).toLocaleDateString('fr-FR')} — {new Date(planning.endDate).toLocaleDateString('fr-FR')}
             </h1>
             <div className="flex items-center gap-3 mt-1">
               <span className={planning.status === 'published' ? 'badge-green' : planning.status === 'generated' ? 'badge-blue' : 'badge-gray'}>
-                {planning.status === 'published' ? 'Publi\u00e9' : planning.status === 'generated' ? 'G\u00e9n\u00e9r\u00e9' : 'Brouillon'}
+                {planning.status === 'published' ? 'Publié' : planning.status === 'generated' ? 'Généré' : 'Brouillon'}
               </span>
               {planning.qualityScore !== null && (
                 <span className="text-sm text-gray-500">Score : {planning.qualityScore.toFixed(0)}/100</span>
@@ -142,7 +139,7 @@ export function PlanningDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={handleGenerate} disabled={generating} className="btn-primary">
-            <Zap className="w-4 h-4" /> {generating ? 'G\u00e9n\u00e9ration...' : 'G\u00e9n\u00e9rer'}
+            <Zap className="w-4 h-4" /> {generating ? 'Génération...' : 'Générer'}
           </button>
           {planning.status === 'generated' && (
             <button onClick={handlePublish} className="btn-success">
@@ -158,14 +155,13 @@ export function PlanningDetailPage() {
         </div>
       </div>
 
-      {/* Scores */}
       {planning.qualityScore !== null && (
         <div className="grid grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'Score global', value: planning.qualityScore, color: 'primary' },
-            { label: 'Couverture', value: planning.coverageScore, color: 'emerald' },
-            { label: 'Ad\u00e9quation', value: planning.adequacyScore, color: 'blue' },
-            { label: '\u00c9quit\u00e9', value: planning.equityScore, color: 'purple' },
+            { label: 'Score global', value: planning.qualityScore },
+            { label: 'Couverture', value: planning.coverageScore },
+            { label: 'Adéquation', value: planning.adequacyScore },
+            { label: 'Équité', value: planning.equityScore },
           ].map((s) => (
             <div key={s.label} className="card p-4 text-center">
               <p className="text-2xl font-bold">{(s.value ?? 0).toFixed(0)}<span className="text-sm text-gray-400">/100</span></p>
@@ -175,11 +171,10 @@ export function PlanningDetailPage() {
         </div>
       )}
 
-      {/* Onglets de vue */}
       <div className="flex gap-2 mb-6 border-b border-gray-200">
         {[
           { key: 'calendar', label: 'Calendrier' },
-          { key: 'byEmployee', label: 'Par employ\u00e9' },
+          { key: 'byEmployee', label: 'Par employé' },
           { key: 'byPosition', label: 'Par poste' },
         ].map((tab) => (
           <button key={tab.key} onClick={() => setViewMode(tab.key as typeof viewMode)}
@@ -191,7 +186,6 @@ export function PlanningDetailPage() {
         ))}
       </div>
 
-      {/* Vue Calendrier */}
       {viewMode === 'calendar' && (
         <div className="space-y-6">
           {sortedDates.map((date) => {
@@ -212,7 +206,7 @@ export function PlanningDetailPage() {
                           <div className="flex items-center gap-3">
                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: slot.positionColor || '#3B82F6' }} />
                             <span className="font-medium">{slot.positionName}</span>
-                            <span className="text-sm text-gray-400">{slot.startTime} \u2014 {slot.endTime}</span>
+                            <span className="text-sm text-gray-400">{slot.startTime} — {slot.endTime}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className={`text-xs ${isFull ? 'text-emerald-600' : 'text-red-600'}`}>
@@ -253,7 +247,6 @@ export function PlanningDetailPage() {
         </div>
       )}
 
-      {/* Vue par employ\u00e9 */}
       {viewMode === 'byEmployee' && (
         <div className="space-y-4">
           {Array.from(employeeAssignments.entries()).map(([empId, assignments]) => {
@@ -267,14 +260,14 @@ export function PlanningDetailPage() {
               <div key={empId} className="card p-5">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold">{assignments[0]?.employeeName}</h3>
-                  <span className="badge-blue">{totalHours.toFixed(1)}h cumul\u00e9es</span>
+                  <span className="badge-blue">{totalHours.toFixed(1)}h cumulées</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                   {assignments.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map((a) => (
                     <div key={a.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
                       <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: a.positionColor || '#3B82F6' }} />
                       <span className="text-gray-500">{a.date && new Date(a.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' })}</span>
-                      <span>{a.startTime}\u2014{a.endTime}</span>
+                      <span>{a.startTime}—{a.endTime}</span>
                       <span className="font-medium">{a.positionName}</span>
                     </div>
                   ))}
@@ -285,7 +278,6 @@ export function PlanningDetailPage() {
         </div>
       )}
 
-      {/* Vue par poste */}
       {viewMode === 'byPosition' && (
         <div className="space-y-4">
           {Array.from(positionAssignments.entries()).map(([posName, assignments]) => (
@@ -299,7 +291,7 @@ export function PlanningDetailPage() {
                 {assignments.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map((a) => (
                   <div key={a.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
                     <span className="text-gray-500">{a.date && new Date(a.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' })}</span>
-                    <span>{a.startTime}\u2014{a.endTime}</span>
+                    <span>{a.startTime}—{a.endTime}</span>
                     <span className="font-medium">{a.employeeName}</span>
                   </div>
                 ))}
@@ -309,11 +301,10 @@ export function PlanningDetailPage() {
         </div>
       )}
 
-      {/* Modal affectation manuelle */}
-      <Modal isOpen={assignModal !== null} onClose={() => setAssignModal(null)} title="Affecter un employ\u00e9" size="sm">
+      <Modal isOpen={assignModal !== null} onClose={() => setAssignModal(null)} title="Affecter un employé" size="sm">
         <div className="space-y-4">
           <div>
-            <label className="label">Employ\u00e9</label>
+            <label className="label">Employé</label>
             <select className="input" value={selectedEmployee}
               onChange={(e) => setSelectedEmployee(parseInt(e.target.value))}>
               {employees.map((e) => <option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}

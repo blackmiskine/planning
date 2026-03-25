@@ -6,20 +6,18 @@ export async function exportToPdf(planning: PlanningWithDetails): Promise<void> 
 
   const doc = new jsPDF({ orientation: 'landscape' });
 
-  // Titre
   doc.setFontSize(18);
   doc.text('Planning RH', 14, 20);
   doc.setFontSize(12);
   doc.text(
-    `P\u00e9riode : ${new Date(planning.startDate).toLocaleDateString('fr-FR')} au ${new Date(planning.endDate).toLocaleDateString('fr-FR')}`,
+    `Période : ${new Date(planning.startDate).toLocaleDateString('fr-FR')} au ${new Date(planning.endDate).toLocaleDateString('fr-FR')}`,
     14, 30,
   );
 
   if (planning.qualityScore !== null) {
-    doc.text(`Score qualit\u00e9 : ${planning.qualityScore.toFixed(0)}/100`, 14, 38);
+    doc.text(`Score qualité : ${planning.qualityScore.toFixed(0)}/100`, 14, 38);
   }
 
-  // Regrouper par date
   const dateGroups = new Map<string, typeof planning.assignments>();
   for (const a of planning.assignments) {
     const date = a.date || '';
@@ -42,12 +40,11 @@ export async function exportToPdf(planning: PlanningWithDetails): Promise<void> 
         a.positionName || '',
         `${a.startTime || ''} - ${a.endTime || ''}`,
         a.employeeName || '',
-        a.isForced ? 'Forc\u00e9' : a.warnings.length > 0 ? 'Avertissement' : 'OK',
+        a.isForced ? 'Forcé' : a.warnings.length > 0 ? 'Avertissement' : 'OK',
       ]);
     }
   }
 
-  // Non couverts
   for (const req of planning.requirements) {
     const assigned = planning.assignments.filter((a) => a.slotRequirementId === req.id);
     const missing = req.headcount - assigned.length;
@@ -63,7 +60,7 @@ export async function exportToPdf(planning: PlanningWithDetails): Promise<void> 
 
   autoTable(doc, {
     startY: 45,
-    head: [['Date', 'Poste', 'Cr\u00e9neau', 'Employ\u00e9', 'Statut']],
+    head: [['Date', 'Poste', 'Créneau', 'Employé', 'Statut']],
     body: rows,
     styles: { fontSize: 9 },
     headStyles: { fillColor: [59, 130, 246] },
@@ -76,18 +73,16 @@ export async function exportToExcel(planning: PlanningWithDetails): Promise<void
   const ExcelJS = await import('exceljs');
   const workbook = new ExcelJS.Workbook();
 
-  // Feuille principale
   const sheet = workbook.addWorksheet('Planning');
 
   sheet.columns = [
     { header: 'Date', key: 'date', width: 25 },
     { header: 'Poste', key: 'position', width: 20 },
-    { header: 'Cr\u00e9neau', key: 'slot', width: 15 },
-    { header: 'Employ\u00e9', key: 'employee', width: 25 },
+    { header: 'Créneau', key: 'slot', width: 15 },
+    { header: 'Employé', key: 'employee', width: 25 },
     { header: 'Statut', key: 'status', width: 15 },
   ];
 
-  // Style en-t\u00eate
   sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
   sheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3B82F6' } };
 
@@ -106,12 +101,11 @@ export async function exportToExcel(planning: PlanningWithDetails): Promise<void
         position: a.positionName || '',
         slot: `${a.startTime || ''} - ${a.endTime || ''}`,
         employee: a.employeeName || '',
-        status: a.isForced ? 'Forc\u00e9' : a.warnings.length > 0 ? 'Avertissement' : 'OK',
+        status: a.isForced ? 'Forcé' : a.warnings.length > 0 ? 'Avertissement' : 'OK',
       });
     }
   }
 
-  // Non couverts
   for (const req of planning.requirements) {
     const assigned = planning.assignments.filter((a) => a.slotRequirementId === req.id);
     const missing = req.headcount - assigned.length;
@@ -130,20 +124,19 @@ export async function exportToExcel(planning: PlanningWithDetails): Promise<void
     }
   }
 
-  // Feuille r\u00e9capitulatif
-  const summarySheet = workbook.addWorksheet('R\u00e9capitulatif');
+  const summarySheet = workbook.addWorksheet('Récapitulatif');
   summarySheet.columns = [
-    { header: 'M\u00e9trique', key: 'metric', width: 25 },
+    { header: 'Métrique', key: 'metric', width: 25 },
     { header: 'Valeur', key: 'value', width: 15 },
   ];
   summarySheet.getRow(1).font = { bold: true };
-  summarySheet.addRow({ metric: 'P\u00e9riode', value: `${planning.startDate} au ${planning.endDate}` });
+  summarySheet.addRow({ metric: 'Période', value: `${planning.startDate} au ${planning.endDate}` });
   summarySheet.addRow({ metric: 'Score global', value: planning.qualityScore?.toFixed(0) || 'N/A' });
   summarySheet.addRow({ metric: 'Couverture', value: planning.coverageScore?.toFixed(0) || 'N/A' });
-  summarySheet.addRow({ metric: 'Ad\u00e9quation', value: planning.adequacyScore?.toFixed(0) || 'N/A' });
-  summarySheet.addRow({ metric: '\u00c9quit\u00e9', value: planning.equityScore?.toFixed(0) || 'N/A' });
+  summarySheet.addRow({ metric: 'Adéquation', value: planning.adequacyScore?.toFixed(0) || 'N/A' });
+  summarySheet.addRow({ metric: 'Équité', value: planning.equityScore?.toFixed(0) || 'N/A' });
   summarySheet.addRow({ metric: 'Affectations totales', value: planning.assignments.length });
-  summarySheet.addRow({ metric: 'Cr\u00e9neaux requis', value: planning.requirements.reduce((s, r) => s + r.headcount, 0) });
+  summarySheet.addRow({ metric: 'Créneaux requis', value: planning.requirements.reduce((s, r) => s + r.headcount, 0) });
 
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
