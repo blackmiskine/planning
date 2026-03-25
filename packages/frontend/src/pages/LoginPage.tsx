@@ -17,7 +17,7 @@ export function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-      toast.success('Connexion r\u00e9ussie');
+      toast.success('Connexion réussie');
       navigate('/');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erreur de connexion');
@@ -34,7 +34,7 @@ export function LoginPage() {
             <ClipboardList className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-white">Planning RH</h1>
-          <p className="text-primary-200 mt-1">H\u00f4tel-Restaurant</p>
+          <p className="text-primary-200 mt-1">Hôtel-Restaurant</p>
         </div>
 
         <form onSubmit={handleSubmit} className="card p-8">
@@ -61,7 +61,7 @@ export function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="input pr-10"
-                  placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+                  placeholder="••••••••"
                   required
                 />
                 <button
@@ -80,7 +80,7 @@ export function LoginPage() {
           </button>
 
           <p className="text-xs text-gray-400 text-center mt-4">
-            Par d\u00e9faut : admin@planning.local / admin123
+            Par défaut : admin@planning.local / admin123
           </p>
         </form>
       </div>

@@ -6,11 +6,11 @@ import { useAuthStore } from '../../store/auth.store.js';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Tableau de bord' },
-  { to: '/skills', icon: Star, label: 'Comp\u00e9tences' },
-  { to: '/employees', icon: Users, label: 'Employ\u00e9s' },
+  { to: '/skills', icon: Star, label: 'Compétences' },
+  { to: '/employees', icon: Users, label: 'Employés' },
   { to: '/positions', icon: Briefcase, label: 'Postes' },
   { to: '/plannings', icon: Calendar, label: 'Plannings' },
-  { to: '/settings', icon: Settings, label: 'Param\u00e8tres' },
+  { to: '/settings', icon: Settings, label: 'Paramètres' },
 ];
 
 export function Sidebar() {
@@ -25,7 +25,7 @@ export function Sidebar() {
           </div>
           <div>
             <h1 className="font-bold text-sm">Planning RH</h1>
-            <p className="text-xs text-gray-400">H\u00f4tel-Restaurant</p>
+            <p className="text-xs text-gray-400">Hôtel-Restaurant</p>
           </div>
         </div>
       </div>
@@ -65,7 +65,7 @@ export function Sidebar() {
           className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
         >
           <LogOut className="w-4 h-4" />
-          D\u00e9connexion
+          Déconnexion
         </button>
       </div>
     </aside>

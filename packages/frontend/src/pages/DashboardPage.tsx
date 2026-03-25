@@ -24,8 +24,8 @@ export function DashboardPage() {
   if (loading || !stats) return <PageLoader />;
 
   const cards = [
-    { label: 'Employ\u00e9s actifs', value: stats.activeEmployees, total: stats.totalEmployees, icon: Users, color: 'bg-blue-500', link: '/employees' },
-    { label: 'Comp\u00e9tences', value: stats.totalSkills, icon: Star, color: 'bg-amber-500', link: '/skills' },
+    { label: 'Employés actifs', value: stats.activeEmployees, total: stats.totalEmployees, icon: Users, color: 'bg-blue-500', link: '/employees' },
+    { label: 'Compétences', value: stats.totalSkills, icon: Star, color: 'bg-amber-500', link: '/skills' },
     { label: 'Postes', value: stats.totalPositions, icon: Briefcase, color: 'bg-purple-500', link: '/positions' },
     { label: 'Plannings actifs', value: stats.activePlannings, icon: Calendar, color: 'bg-emerald-500', link: '/plannings' },
   ];
@@ -34,7 +34,7 @@ export function DashboardPage() {
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Tableau de bord</h1>
-        <p className="text-gray-500 mt-1">Vue d'ensemble de votre \u00e9tablissement</p>
+        <p className="text-gray-500 mt-1">Vue d'ensemble de votre établissement</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -61,7 +61,7 @@ export function DashboardPage() {
         <div className="card p-6">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-amber-500" />
-            Alertes r\u00e9centes
+            Alertes récentes
           </h2>
           {stats.recentAlerts.length === 0 ? (
             <div className="flex items-center gap-3 py-8 justify-center text-gray-400">
@@ -90,22 +90,22 @@ export function DashboardPage() {
             <Link to="/plannings" className="flex items-center gap-3 p-3 rounded-lg bg-primary-50 hover:bg-primary-100 transition-colors">
               <Calendar className="w-5 h-5 text-primary-600" />
               <div>
-                <p className="text-sm font-medium text-primary-900">Cr\u00e9er un planning</p>
-                <p className="text-xs text-primary-600">G\u00e9n\u00e9rer un nouveau planning pour la semaine</p>
+                <p className="text-sm font-medium text-primary-900">Créer un planning</p>
+                <p className="text-xs text-primary-600">Générer un nouveau planning pour la semaine</p>
               </div>
             </Link>
             <Link to="/employees" className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors">
               <Users className="w-5 h-5 text-blue-600" />
               <div>
-                <p className="text-sm font-medium text-blue-900">G\u00e9rer les employ\u00e9s</p>
-                <p className="text-xs text-blue-600">Ajouter ou modifier les profils employ\u00e9s</p>
+                <p className="text-sm font-medium text-blue-900">Gérer les employés</p>
+                <p className="text-xs text-blue-600">Ajouter ou modifier les profils employés</p>
               </div>
             </Link>
             <Link to="/positions" className="flex items-center gap-3 p-3 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors">
               <Briefcase className="w-5 h-5 text-purple-600" />
               <div>
                 <p className="text-sm font-medium text-purple-900">Configurer les postes</p>
-                <p className="text-xs text-purple-600">D\u00e9finir les postes et leurs exigences</p>
+                <p className="text-xs text-purple-600">Définir les postes et leurs exigences</p>
               </div>
             </Link>
           </div>
