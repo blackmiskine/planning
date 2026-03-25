@@ -10,12 +10,12 @@ import type { Skill, SkillCategory } from '@planning/shared';
 import toast from 'react-hot-toast';
 
 const categoryLabels: Record<SkillCategory, string> = {
-  cuisine: 'Cuisine', salle: 'Salle', h\u00e9bergement: 'H\u00e9bergement',
+  cuisine: 'Cuisine', salle: 'Salle', hébergement: 'Hébergement',
   administration: 'Administration', polyvalent: 'Polyvalent',
 };
 
 const categoryColors: Record<SkillCategory, string> = {
-  cuisine: 'badge-purple', salle: 'badge-blue', h\u00e9bergement: 'badge-green',
+  cuisine: 'badge-purple', salle: 'badge-blue', hébergement: 'badge-green',
   administration: 'badge-yellow', polyvalent: 'badge-gray',
 };
 
@@ -58,10 +58,10 @@ export function SkillsPage() {
     try {
       if (editSkill) {
         await api.put(`/skills/${editSkill.id}`, form);
-        toast.success('Comp\u00e9tence modifi\u00e9e');
+        toast.success('Compétence modifiée');
       } else {
         await api.post('/skills', form);
-        toast.success('Comp\u00e9tence cr\u00e9\u00e9e');
+        toast.success('Compétence créée');
       }
       setModalOpen(false);
       fetchSkills();
@@ -76,7 +76,7 @@ export function SkillsPage() {
     if (!deleteSkill) return;
     try {
       await api.delete(`/skills/${deleteSkill.id}`);
-      toast.success('Comp\u00e9tence supprim\u00e9e');
+      toast.success('Compétence supprimée');
       fetchSkills();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erreur');
@@ -95,8 +95,8 @@ export function SkillsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Comp\u00e9tences</h1>
-          <p className="text-gray-500 mt-1">R\u00e9f\u00e9rentiel des comp\u00e9tences de l'\u00e9tablissement</p>
+          <h1 className="text-2xl font-bold text-gray-900">Compétences</h1>
+          <p className="text-gray-500 mt-1">Référentiel des compétences de l'établissement</p>
         </div>
         <button onClick={openCreate} className="btn-primary"><Plus className="w-4 h-4" /> Ajouter</button>
       </div>
@@ -110,15 +110,15 @@ export function SkillsPage() {
           </div>
           <select value={filterCat} onChange={(e) => setFilterCat(e.target.value as SkillCategory | '')}
             className="input w-auto">
-            <option value="">Toutes les cat\u00e9gories</option>
+            <option value="">Toutes les catégories</option>
             {SKILL_CATEGORIES.map((c) => <option key={c} value={c}>{categoryLabels[c]}</option>)}
           </select>
         </div>
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState icon={Star} title="Aucune comp\u00e9tence" description="Commencez par ajouter des comp\u00e9tences au r\u00e9f\u00e9rentiel."
-          action={{ label: 'Ajouter une comp\u00e9tence', onClick: openCreate }} />
+        <EmptyState icon={Star} title="Aucune compétence" description="Commencez par ajouter des compétences au référentiel."
+          action={{ label: 'Ajouter une compétence', onClick: openCreate }} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((skill) => (
@@ -142,7 +142,7 @@ export function SkillsPage() {
       )}
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}
-        title={editSkill ? 'Modifier la comp\u00e9tence' : 'Nouvelle comp\u00e9tence'}>
+        title={editSkill ? 'Modifier la compétence' : 'Nouvelle compétence'}>
         <div className="space-y-4">
           <div>
             <label className="label">Nom</label>
@@ -150,7 +150,7 @@ export function SkillsPage() {
               onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </div>
           <div>
-            <label className="label">Cat\u00e9gorie</label>
+            <label className="label">Catégorie</label>
             <select className="input" value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value as SkillCategory })}>
               {SKILL_CATEGORIES.map((c) => <option key={c} value={c}>{categoryLabels[c]}</option>)}
@@ -171,8 +171,8 @@ export function SkillsPage() {
       </Modal>
 
       <ConfirmDialog isOpen={!!deleteSkill} onClose={() => setDeleteSkill(null)}
-        onConfirm={handleDelete} title="Supprimer la comp\u00e9tence" danger
-        message={`\u00cates-vous s\u00fbr de vouloir supprimer "${deleteSkill?.name}" ? Cette action est irr\u00e9versible.`}
+        onConfirm={handleDelete} title="Supprimer la compétence" danger
+        message={`Êtes-vous sûr de vouloir supprimer "${deleteSkill?.name}" ? Cette action est irréversible.`}
         confirmText="Supprimer" />
     </div>
   );

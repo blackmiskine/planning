@@ -57,10 +57,10 @@ export function PositionsPage() {
       const data = { ...form, skillRequirements: reqs };
       if (editPos) {
         await api.put(`/positions/${editPos.id}`, data);
-        toast.success('Poste modifi\u00e9');
+        toast.success('Poste modifié');
       } else {
         await api.post('/positions', data);
-        toast.success('Poste cr\u00e9\u00e9');
+        toast.success('Poste créé');
       }
       setModalOpen(false);
       fetchData();
@@ -73,7 +73,7 @@ export function PositionsPage() {
     if (!deletePos) return;
     try {
       await api.delete(`/positions/${deletePos.id}`);
-      toast.success('Poste supprim\u00e9');
+      toast.success('Poste supprimé');
       fetchData();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erreur');
@@ -89,7 +89,7 @@ export function PositionsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Postes</h1>
-          <p className="text-gray-500 mt-1">{positions.length} poste(s) d\u00e9fini(s)</p>
+          <p className="text-gray-500 mt-1">{positions.length} poste(s) défini(s)</p>
         </div>
         <button onClick={openCreate} className="btn-primary"><Plus className="w-4 h-4" /> Ajouter</button>
       </div>
@@ -103,7 +103,7 @@ export function PositionsPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState icon={Briefcase} title="Aucun poste" description="D\u00e9finissez les postes de votre \u00e9tablissement."
+        <EmptyState icon={Briefcase} title="Aucun poste" description="Définissez les postes de votre établissement."
           action={{ label: 'Ajouter un poste', onClick: openCreate }} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -121,7 +121,7 @@ export function PositionsPage() {
                     <div key={req.id} className="flex items-center gap-2 text-xs">
                       {req.isRequired ? <Shield className="w-3.5 h-3.5 text-red-500" /> : <Sparkles className="w-3.5 h-3.5 text-amber-500" />}
                       <span>{req.skillName}</span>
-                      <span className="text-gray-400">niv. \u2265 {req.minimumLevel}</span>
+                      <span className="text-gray-400">niv. ≥ {req.minimumLevel}</span>
                     </div>
                   ))}
                 </div>
@@ -156,7 +156,7 @@ export function PositionsPage() {
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="label mb-0">Comp\u00e9tences requises</label>
+              <label className="label mb-0">Compétences requises</label>
               <button type="button" onClick={addReq} className="btn-secondary btn-sm"><Plus className="w-3 h-3" /> Ajouter</button>
             </div>
             {reqs.map((req, i) => (

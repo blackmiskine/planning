@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Users, Filter } from 'lucide-react';
+import { Plus, Search, Users } from 'lucide-react';
 import { api } from '../services/api.js';
 import { Modal } from '../components/ui/Modal.js';
 import { EmptyState } from '../components/ui/EmptyState.js';
@@ -42,7 +42,7 @@ export function EmployeesPage() {
     setSaving(true);
     try {
       await api.post('/employees', form);
-      toast.success('Employ\u00e9 ajout\u00e9');
+      toast.success('Employé ajouté');
       setModalOpen(false);
       fetchEmployees();
     } catch (err) {
@@ -66,8 +66,8 @@ export function EmployeesPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Employ\u00e9s</h1>
-          <p className="text-gray-500 mt-1">{employees.length} employ\u00e9(s) enregistr\u00e9(s)</p>
+          <h1 className="text-2xl font-bold">Employés</h1>
+          <p className="text-gray-500 mt-1">{employees.length} employé(s) enregistré(s)</p>
         </div>
         <button onClick={() => setModalOpen(true)} className="btn-primary"><Plus className="w-4 h-4" /> Ajouter</button>
       </div>
@@ -87,20 +87,20 @@ export function EmployeesPage() {
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as EmployeeStatus | '')}
             className="input w-auto">
             <option value="">Tous les statuts</option>
-            {EMPLOYEE_STATUSES.map((s) => <option key={s} value={s} className="capitalize">{s === 'actif' ? 'Actif' : 'Inactif'}</option>)}
+            {EMPLOYEE_STATUSES.map((s) => <option key={s} value={s}>{s === 'actif' ? 'Actif' : 'Inactif'}</option>)}
           </select>
         </div>
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState icon={Users} title="Aucun employ\u00e9" description="Commencez par ajouter vos employ\u00e9s."
-          action={{ label: 'Ajouter un employ\u00e9', onClick: () => setModalOpen(true) }} />
+        <EmptyState icon={Users} title="Aucun employé" description="Commencez par ajouter vos employés."
+          action={{ label: 'Ajouter un employé', onClick: () => setModalOpen(true) }} />
       ) : (
         <div className="card overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Employ\u00e9</th>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Employé</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Contrat</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Statut</th>
@@ -137,15 +137,15 @@ export function EmployeesPage() {
         </div>
       )}
 
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Nouvel employ\u00e9" size="lg">
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Nouvel employé" size="lg">
         <div className="grid grid-cols-2 gap-4">
-          <div><label className="label">Pr\u00e9nom</label>
+          <div><label className="label">Prénom</label>
             <input className="input" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} /></div>
           <div><label className="label">Nom</label>
             <input className="input" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} /></div>
           <div><label className="label">Email</label>
             <input type="email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-          <div><label className="label">T\u00e9l\u00e9phone</label>
+          <div><label className="label">Téléphone</label>
             <input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
           <div><label className="label">Date d'embauche</label>
             <input type="date" className="input" value={form.hireDate} onChange={(e) => setForm({ ...form, hireDate: e.target.value })} /></div>
@@ -157,7 +157,7 @@ export function EmployeesPage() {
         <div className="flex justify-end gap-3 pt-6">
           <button onClick={() => setModalOpen(false)} className="btn-secondary">Annuler</button>
           <button onClick={handleCreate} disabled={saving || !form.firstName || !form.lastName || !form.email}
-            className="btn-primary">{saving ? 'Enregistrement...' : 'Cr\u00e9er'}</button>
+            className="btn-primary">{saving ? 'Enregistrement...' : 'Créer'}</button>
         </div>
       </Modal>
     </div>
