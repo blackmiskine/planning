@@ -1,6 +1,11 @@
 import type { PlanningWithDetails } from '@planning/shared';
 
-export async function exportToPdf(planning: PlanningWithDetails): Promise<void> {
+/**
+ * Export planning en PDF.
+ * @param planning - Le planning avec détails
+ * @param full - true = export admin complet, false = export simplifié (sans statut forcé/avertissement, sans scores)
+ */
+export async function exportToPdf(planning: PlanningWithDetails, full = true): Promise<void> {
   const { jsPDF } = await import('jspdf');
   const autoTable = (await import('jspdf-autotable')).default;
 
@@ -8,16 +13,20 @@ export async function exportToPdf(planning: PlanningWithDetails): Promise<void> 
 
   doc.setFontSize(18);
   doc.text('Planning RH', 14, 20);
-  doc.setFontSize(12);
-  doc.text(
-    `Période : ${new Date(planning.startDate).toLocaleDateString('fr-FR')} au ${new Date(planning.endDate).toLocaleDateString('fr-FR')}`,
-    14, 30,
-  );
+  doc.setFontSize(11);
 
-  if (planning.qualityScore !== null) {
-    doc.text(`Score qualité : ${planning.qualityScore.toFixed(0)}/100`, 14, 38);
+  const periodText = 'Periode : ' + formatDateFR(planning.startDate) + ' au ' + formatDateFR(planning.endDate);
+  doc.text(periodText, 14, 30);
+
+  let startY = 36;
+
+  if (full && planning.qualityScore !== null) {
+    doc.setFontSize(10);
+    doc.text('Score qualite : ' + planning.qualityScore.toFixed(0) + '/100', 14, 38);
+    startY = 44;
   }
 
+  // Construire les données
   const dateGroups = new Map<string, typeof planning.assignments>();
   for (const a of planning.assignments) {
     const date = a.date || '';
@@ -25,67 +34,104 @@ export async function exportToPdf(planning: PlanningWithDetails): Promise<void> 
     dateGroups.get(date)!.push(a);
   }
 
-  const rows: (string | number)[][] = [];
   const sortedDates = Array.from(dateGroups.keys()).sort();
+
+  const headers = full
+    ? ['Date', 'Poste', 'Creneau', 'Employe', 'Statut']
+    : ['Date', 'Poste', 'Creneau', 'Employe'];
+
+  const rows: string[][] = [];
 
   for (const date of sortedDates) {
     const dayAssignments = dateGroups.get(date) || [];
-    const dayName = new Date(date).toLocaleDateString('fr-FR', {
-      weekday: 'long', day: 'numeric', month: 'long',
-    });
+    const dayName = formatDayFR(date);
 
     for (const a of dayAssignments) {
-      rows.push([
+      const row: string[] = [
         dayName,
         a.positionName || '',
-        `${a.startTime || ''} - ${a.endTime || ''}`,
+        (a.startTime || '') + ' - ' + (a.endTime || ''),
         a.employeeName || '',
-        a.isForced ? 'Forcé' : a.warnings.length > 0 ? 'Avertissement' : 'OK',
-      ]);
+      ];
+      if (full) {
+        let statut = 'OK';
+        if (a.isForced) statut = 'Force';
+        else if (a.warnings.length > 0) statut = 'Avertissement';
+        row.push(statut);
+      }
+      rows.push(row);
     }
   }
 
+  // Créneaux non couverts
   for (const req of planning.requirements) {
     const assigned = planning.assignments.filter((a) => a.slotRequirementId === req.id);
     const missing = req.headcount - assigned.length;
     if (missing > 0) {
-      const dayName = new Date(req.date).toLocaleDateString('fr-FR', {
-        weekday: 'long', day: 'numeric', month: 'long',
-      });
+      const dayName = formatDayFR(req.date);
       for (let i = 0; i < missing; i++) {
-        rows.push([dayName, req.positionName || '', `${req.startTime} - ${req.endTime}`, 'NON COUVERT', 'ALERTE']);
+        const row: string[] = [
+          dayName,
+          req.positionName || '',
+          req.startTime + ' - ' + req.endTime,
+          'NON COUVERT',
+        ];
+        if (full) row.push('ALERTE');
+        rows.push(row);
       }
     }
   }
 
   autoTable(doc, {
-    startY: 45,
-    head: [['Date', 'Poste', 'Créneau', 'Employé', 'Statut']],
+    startY,
+    head: [headers],
     body: rows,
     styles: { fontSize: 9 },
     headStyles: { fillColor: [59, 130, 246] },
   });
 
-  doc.save(`planning-${planning.startDate}-${planning.endDate}.pdf`);
+  const fileName = 'planning-' + planning.startDate + '-' + planning.endDate + (full ? '' : '-simplifie') + '.pdf';
+  doc.save(fileName);
 }
 
-export async function exportToExcel(planning: PlanningWithDetails): Promise<void> {
+/**
+ * Export planning en Excel.
+ * @param planning - Le planning avec détails
+ * @param full - true = export admin complet (avec statut + récapitulatif), false = simplifié
+ */
+export async function exportToExcel(planning: PlanningWithDetails, full = true): Promise<void> {
   const ExcelJS = await import('exceljs');
   const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Planning RH';
+  workbook.created = new Date();
 
   const sheet = workbook.addWorksheet('Planning');
 
-  sheet.columns = [
-    { header: 'Date', key: 'date', width: 25 },
-    { header: 'Poste', key: 'position', width: 20 },
-    { header: 'Créneau', key: 'slot', width: 15 },
-    { header: 'Employé', key: 'employee', width: 25 },
-    { header: 'Statut', key: 'status', width: 15 },
-  ];
+  // Définir les colonnes selon le mode
+  if (full) {
+    sheet.columns = [
+      { header: 'Date', key: 'col_date', width: 28 },
+      { header: 'Poste', key: 'col_poste', width: 22 },
+      { header: 'Creneau', key: 'col_creneau', width: 18 },
+      { header: 'Employe', key: 'col_employe', width: 26 },
+      { header: 'Statut', key: 'col_statut', width: 16 },
+    ];
+  } else {
+    sheet.columns = [
+      { header: 'Date', key: 'col_date', width: 28 },
+      { header: 'Poste', key: 'col_poste', width: 22 },
+      { header: 'Creneau', key: 'col_creneau', width: 18 },
+      { header: 'Employe', key: 'col_employe', width: 26 },
+    ];
+  }
 
-  sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-  sheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3B82F6' } };
+  // Style en-tete
+  const headerRow = sheet.getRow(1);
+  headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3B82F6' } };
+  headerRow.alignment = { horizontal: 'left' };
 
+  // Regrouper par date
   const dateGroups = new Map<string, typeof planning.assignments>();
   for (const a of planning.assignments) {
     const date = a.date || '';
@@ -93,57 +139,104 @@ export async function exportToExcel(planning: PlanningWithDetails): Promise<void
     dateGroups.get(date)!.push(a);
   }
 
-  for (const date of Array.from(dateGroups.keys()).sort()) {
+  const sortedDates = Array.from(dateGroups.keys()).sort();
+
+  for (const date of sortedDates) {
     const dayAssignments = dateGroups.get(date) || [];
+    const dayName = formatDayFR(date);
+
     for (const a of dayAssignments) {
-      sheet.addRow({
-        date: new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }),
-        position: a.positionName || '',
-        slot: `${a.startTime || ''} - ${a.endTime || ''}`,
-        employee: a.employeeName || '',
-        status: a.isForced ? 'Forcé' : a.warnings.length > 0 ? 'Avertissement' : 'OK',
-      });
+      const rowData: Record<string, string> = {
+        col_date: dayName,
+        col_poste: a.positionName || '',
+        col_creneau: (a.startTime || '') + ' - ' + (a.endTime || ''),
+        col_employe: a.employeeName || '',
+      };
+      if (full) {
+        let statut = 'OK';
+        if (a.isForced) statut = 'Force';
+        else if (a.warnings.length > 0) statut = 'Avertissement';
+        rowData.col_statut = statut;
+      }
+      sheet.addRow(rowData);
     }
   }
 
+  // Non couverts
   for (const req of planning.requirements) {
     const assigned = planning.assignments.filter((a) => a.slotRequirementId === req.id);
     const missing = req.headcount - assigned.length;
     if (missing > 0) {
+      const dayName = formatDayFR(req.date);
       for (let i = 0; i < missing; i++) {
-        const row = sheet.addRow({
-          date: new Date(req.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }),
-          position: req.positionName || '',
-          slot: `${req.startTime} - ${req.endTime}`,
-          employee: 'NON COUVERT',
-          status: 'ALERTE',
-        });
-        row.getCell('employee').font = { bold: true, color: { argb: 'FFEF4444' } };
-        row.getCell('status').font = { bold: true, color: { argb: 'FFEF4444' } };
+        const rowData: Record<string, string> = {
+          col_date: dayName,
+          col_poste: req.positionName || '',
+          col_creneau: req.startTime + ' - ' + req.endTime,
+          col_employe: 'NON COUVERT',
+        };
+        if (full) rowData.col_statut = 'ALERTE';
+
+        const row = sheet.addRow(rowData);
+        row.getCell('col_employe').font = { bold: true, color: { argb: 'FFEF4444' } };
+        if (full) {
+          row.getCell('col_statut').font = { bold: true, color: { argb: 'FFEF4444' } };
+        }
       }
     }
   }
 
-  const summarySheet = workbook.addWorksheet('Récapitulatif');
-  summarySheet.columns = [
-    { header: 'Métrique', key: 'metric', width: 25 },
-    { header: 'Valeur', key: 'value', width: 15 },
-  ];
-  summarySheet.getRow(1).font = { bold: true };
-  summarySheet.addRow({ metric: 'Période', value: `${planning.startDate} au ${planning.endDate}` });
-  summarySheet.addRow({ metric: 'Score global', value: planning.qualityScore?.toFixed(0) || 'N/A' });
-  summarySheet.addRow({ metric: 'Couverture', value: planning.coverageScore?.toFixed(0) || 'N/A' });
-  summarySheet.addRow({ metric: 'Adéquation', value: planning.adequacyScore?.toFixed(0) || 'N/A' });
-  summarySheet.addRow({ metric: 'Équité', value: planning.equityScore?.toFixed(0) || 'N/A' });
-  summarySheet.addRow({ metric: 'Affectations totales', value: planning.assignments.length });
-  summarySheet.addRow({ metric: 'Créneaux requis', value: planning.requirements.reduce((s, r) => s + r.headcount, 0) });
+  // Feuille recapitulatif uniquement en mode complet
+  if (full) {
+    const summarySheet = workbook.addWorksheet('Recapitulatif');
+    summarySheet.columns = [
+      { header: 'Metrique', key: 'col_metric', width: 28 },
+      { header: 'Valeur', key: 'col_value', width: 18 },
+    ];
+    const summaryHeader = summarySheet.getRow(1);
+    summaryHeader.font = { bold: true };
 
+    const totalSlots = planning.requirements.reduce((s, r) => s + r.headcount, 0);
+
+    summarySheet.addRow({ col_metric: 'Periode', col_value: planning.startDate + ' au ' + planning.endDate });
+    summarySheet.addRow({ col_metric: 'Score global', col_value: planning.qualityScore != null ? planning.qualityScore.toFixed(0) + '/100' : 'N/A' });
+    summarySheet.addRow({ col_metric: 'Couverture', col_value: planning.coverageScore != null ? planning.coverageScore.toFixed(0) + '/100' : 'N/A' });
+    summarySheet.addRow({ col_metric: 'Adequation', col_value: planning.adequacyScore != null ? planning.adequacyScore.toFixed(0) + '/100' : 'N/A' });
+    summarySheet.addRow({ col_metric: 'Equite', col_value: planning.equityScore != null ? planning.equityScore.toFixed(0) + '/100' : 'N/A' });
+    summarySheet.addRow({ col_metric: 'Affectations totales', col_value: String(planning.assignments.length) });
+    summarySheet.addRow({ col_metric: 'Creneaux requis', col_value: String(totalSlots) });
+  }
+
+  // Telecharger
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `planning-${planning.startDate}-${planning.endDate}.xlsx`;
-  a.click();
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'planning-' + planning.startDate + '-' + planning.endDate + (full ? '' : '-simplifie') + '.xlsx';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+// --- Helpers ---
+
+function formatDateFR(dateStr: string): string {
+  const d = new Date(dateStr);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return day + '/' + month + '/' + year;
+}
+
+const joursSemaine = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+const moisNoms = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+
+function formatDayFR(dateStr: string): string {
+  const d = new Date(dateStr);
+  const jour = joursSemaine[d.getDay()] || '';
+  const num = d.getDate();
+  const mois = moisNoms[d.getMonth()] || '';
+  return jour + ' ' + num + ' ' + mois;
 }
