@@ -1,17 +1,22 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Trash2, Clock, Calendar as CalendarIcon, Star } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Clock, Calendar as CalendarIcon, Star, User } from 'lucide-react';
 import { api } from '../services/api.js';
 import { StarRating } from '../components/ui/StarRating.js';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog.js';
 import { PageLoader } from '../components/ui/LoadingSpinner.js';
-import { CONTRACT_TYPES, EMPLOYEE_STATUSES } from '@planning/shared';
+import { CONTRACT_TYPES, EMPLOYEE_STATUSES, SKILL_LEVELS } from '@planning/shared';
 import type {
   EmployeeWithDetails, Skill, Position, ContractType, EmployeeStatus,
   Unavailability, UnavailabilityType, DayOfWeek,
 } from '@planning/shared';
 import { DAYS_OF_WEEK } from '@planning/shared';
 import toast from 'react-hot-toast';
+
+const categoryLabels: Record<string, string> = {
+  cuisine: 'Cuisine', salle: 'Salle', hébergement: 'Hébergement',
+  administration: 'Administration', polyvalent: 'Polyvalent',
+};
 
 export function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -125,10 +130,20 @@ export function EmployeeDetailPage() {
   if (loading || !employee) return <PageLoader />;
 
   const tabs = [
-    { key: 'info', label: 'Informations', icon: Star },
+    { key: 'info', label: 'Informations', icon: User },
     { key: 'skills', label: 'Compétences & Limites', icon: Star },
     { key: 'availability', label: 'Disponibilités', icon: CalendarIcon },
   ] as const;
+
+  // Regrouper les compétences par catégorie pour l'affichage dans l'onglet Informations
+  const skillsByCategory = new Map<string, { skillName: string; rating: number }[]>();
+  if (employee.skillRatings) {
+    for (const sr of employee.skillRatings) {
+      const cat = sr.skillCategory || 'polyvalent';
+      if (!skillsByCategory.has(cat)) skillsByCategory.set(cat, []);
+      skillsByCategory.get(cat)!.push({ skillName: sr.skillName || 'Inconnu', rating: sr.rating });
+    }
+  }
 
   return (
     <div>
@@ -159,29 +174,62 @@ export function EmployeeDetailPage() {
       </div>
 
       {activeTab === 'info' && (
-        <div className="card p-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className="label">Prénom</label>
-              <input className="input" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} /></div>
-            <div><label className="label">Nom</label>
-              <input className="input" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} /></div>
-            <div><label className="label">Email</label>
-              <input type="email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-            <div><label className="label">Téléphone</label>
-              <input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-            <div><label className="label">Date d'embauche</label>
-              <input type="date" className="input" value={form.hireDate} onChange={(e) => setForm({ ...form, hireDate: e.target.value })} /></div>
-            <div><label className="label">Contrat</label>
-              <select className="input" value={form.contractType} onChange={(e) => setForm({ ...form, contractType: e.target.value as ContractType })}>
-                {CONTRACT_TYPES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select></div>
-            <div><label className="label">Statut</label>
-              <select className="input" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as EmployeeStatus })}>
-                {EMPLOYEE_STATUSES.map((s) => <option key={s} value={s}>{s === 'actif' ? 'Actif' : 'Inactif'}</option>)}
-              </select></div>
+        <div className="space-y-6">
+          <div className="card p-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className="label">Prénom</label>
+                <input className="input" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} /></div>
+              <div><label className="label">Nom</label>
+                <input className="input" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} /></div>
+              <div><label className="label">Email</label>
+                <input type="email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+              <div><label className="label">Téléphone</label>
+                <input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+              <div><label className="label">Date d'embauche</label>
+                <input type="date" className="input" value={form.hireDate} onChange={(e) => setForm({ ...form, hireDate: e.target.value })} /></div>
+              <div><label className="label">Contrat</label>
+                <select className="input" value={form.contractType} onChange={(e) => setForm({ ...form, contractType: e.target.value as ContractType })}>
+                  {CONTRACT_TYPES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select></div>
+              <div><label className="label">Statut</label>
+                <select className="input" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as EmployeeStatus })}>
+                  {EMPLOYEE_STATUSES.map((s) => <option key={s} value={s}>{s === 'actif' ? 'Actif' : 'Inactif'}</option>)}
+                </select></div>
+            </div>
+            <div className="flex justify-end mt-6">
+              <button onClick={saveInfo} className="btn-primary"><Save className="w-4 h-4" /> Enregistrer</button>
+            </div>
           </div>
-          <div className="flex justify-end mt-6">
-            <button onClick={saveInfo} className="btn-primary"><Save className="w-4 h-4" /> Enregistrer</button>
+
+          {/* Compétences résumées dans l'onglet Informations */}
+          <div className="card p-6">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <Star className="w-4 h-4 text-amber-500" /> Compétences de l'employé
+            </h3>
+            {employee.skillRatings.length === 0 ? (
+              <p className="text-sm text-gray-400">Aucune compétence renseignée. Rendez-vous dans l'onglet "Compétences & Limites" pour en ajouter.</p>
+            ) : (
+              <div className="space-y-4">
+                {Array.from(skillsByCategory.entries()).map(([cat, ratings]) => (
+                  <div key={cat}>
+                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                      {categoryLabels[cat] || cat}
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {ratings.sort((a, b) => b.rating - a.rating).map((r) => (
+                        <div key={r.skillName} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg">
+                          <span className="text-sm font-medium text-gray-700">{r.skillName}</span>
+                          <div className="flex items-center gap-2">
+                            <StarRating value={r.rating} readonly size="sm" />
+                            <span className="text-xs text-gray-400">{SKILL_LEVELS[r.rating as keyof typeof SKILL_LEVELS]}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -2,13 +2,14 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Zap, Download, FileSpreadsheet, Send, AlertTriangle,
-  UserPlus, Trash2,
+  UserPlus, Trash2, Info, X,
 } from 'lucide-react';
 import { api } from '../services/api.js';
 import { Modal } from '../components/ui/Modal.js';
 import { PageLoader } from '../components/ui/LoadingSpinner.js';
+import { StarRating } from '../components/ui/StarRating.js';
 import { exportToPdf, exportToExcel } from '../utils/export.js';
-import type { PlanningWithDetails, Employee, PlanningQualityReport, Assignment } from '@planning/shared';
+import type { PlanningWithDetails, Employee, EmployeeWithDetails, PlanningQualityReport, Assignment } from '@planning/shared';
 import toast from 'react-hot-toast';
 
 export function PlanningDetailPage() {
@@ -16,24 +17,33 @@ export function PlanningDetailPage() {
   const navigate = useNavigate();
   const [planning, setPlanning] = useState<PlanningWithDetails | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employeesDetailed, setEmployeesDetailed] = useState<EmployeeWithDetails[]>([]);
   const [report, setReport] = useState<PlanningQualityReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [assignModal, setAssignModal] = useState<number | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<number>(0);
   const [viewMode, setViewMode] = useState<'calendar' | 'byEmployee' | 'byPosition'>('calendar');
+  const [alertDetail, setAlertDetail] = useState<{ warnings: string[]; x: number; y: number } | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [p, e] = await Promise.all([
+      const [p, e, ed] = await Promise.all([
         api.get<PlanningWithDetails>(`/plannings/${id}`),
         api.get<Employee[]>('/employees?status=actif'),
+        api.get<EmployeeWithDetails[]>('/employees?detailed=true'),
       ]);
-      setPlanning(p); setEmployees(e);
+      setPlanning(p); setEmployees(e); setEmployeesDetailed(ed);
     } finally { setLoading(false); }
   }, [id]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Construire un index employé -> compétences
+  const employeeSkillsMap = new Map<number, EmployeeWithDetails>();
+  for (const emp of employeesDetailed) {
+    employeeSkillsMap.set(emp.id, emp);
+  }
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -91,6 +101,18 @@ export function PlanningDetailPage() {
     }
   };
 
+  const showAlertDetail = (warnings: string[], event: React.MouseEvent) => {
+    event.stopPropagation();
+    setAlertDetail({ warnings, x: event.clientX, y: event.clientY });
+  };
+
+  // Fermer le popover d'alerte au clic ailleurs
+  useEffect(() => {
+    const handleClick = () => setAlertDetail(null);
+    if (alertDetail) document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [alertDetail]);
+
   if (loading || !planning) return <PageLoader />;
 
   const dateGroups = new Map<string, typeof planning.requirements>();
@@ -115,6 +137,45 @@ export function PlanningDetailPage() {
     if (!positionAssignments.has(key)) positionAssignments.set(key, []);
     positionAssignments.get(key)!.push(a);
   }
+
+  // Rendu des compétences d'un employé (compact)
+  const renderEmployeeSkills = (employeeId: number) => {
+    const emp = employeeSkillsMap.get(employeeId);
+    if (!emp || emp.skillRatings.length === 0) return null;
+    return (
+      <div className="flex flex-wrap gap-1 mt-0.5">
+        {emp.skillRatings
+          .sort((a, b) => b.rating - a.rating)
+          .slice(0, 4)
+          .map((sr) => (
+            <span key={sr.skillId} className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600"
+              title={`${sr.skillName} — Niveau ${sr.rating}/5`}>
+              {sr.skillName?.substring(0, 12)}{sr.skillName && sr.skillName.length > 12 ? '…' : ''}
+              <span className="font-bold text-amber-600">{sr.rating}</span>
+            </span>
+          ))}
+        {emp.skillRatings.length > 4 && (
+          <span className="text-[10px] text-gray-400">+{emp.skillRatings.length - 4}</span>
+        )}
+      </div>
+    );
+  };
+
+  // Rendu des compétences dans le modal d'affectation
+  const renderEmployeeSkillsDetail = (employeeId: number) => {
+    const emp = employeeSkillsMap.get(employeeId);
+    if (!emp || emp.skillRatings.length === 0) return <p className="text-xs text-gray-400 mt-1">Aucune compétence renseignée</p>;
+    return (
+      <div className="mt-2 space-y-1">
+        {emp.skillRatings.sort((a, b) => b.rating - a.rating).map((sr) => (
+          <div key={sr.skillId} className="flex items-center justify-between text-xs bg-gray-50 rounded px-2 py-1">
+            <span className="text-gray-700">{sr.skillName}</span>
+            <StarRating value={sr.rating} readonly size="sm" />
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -186,6 +247,34 @@ export function PlanningDetailPage() {
         ))}
       </div>
 
+      {/* Popover alerte flottant */}
+      {alertDetail && (
+        <div
+          className="fixed z-50 bg-white border border-amber-200 rounded-lg shadow-xl p-4 max-w-sm"
+          style={{ left: Math.min(alertDetail.x, window.innerWidth - 350), top: alertDetail.y + 10 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
+              <span className="font-semibold text-sm">Détails de l'alerte</span>
+            </div>
+            <button onClick={() => setAlertDetail(null)} className="text-gray-400 hover:text-gray-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <ul className="space-y-1">
+            {alertDetail.warnings.map((w, i) => (
+              <li key={i} className="text-sm text-gray-700 flex items-start gap-2">
+                <span className="text-amber-500 mt-0.5">•</span>
+                {w}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Vue Calendrier */}
       {viewMode === 'calendar' && (
         <div className="space-y-6">
           {sortedDates.map((date) => {
@@ -220,15 +309,34 @@ export function PlanningDetailPage() {
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {assigned.map((a) => (
-                            <div key={a.id} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm ${
+                            <div key={a.id} className={`flex flex-col px-3 py-1.5 rounded-lg text-sm ${
                               a.isForced ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50'
                             }`}>
-                              <span>{a.employeeName}</span>
-                              {a.isForced && <AlertTriangle className="w-3 h-3 text-amber-500" />}
-                              {a.warnings.length > 0 && <AlertTriangle className="w-3 h-3 text-amber-500" title={a.warnings.join(', ')} />}
-                              <button onClick={() => handleRemoveAssignment(a.id)} className="text-red-400 hover:text-red-600">
-                                <Trash2 className="w-3 h-3" />
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{a.employeeName}</span>
+                                {a.isForced && (
+                                  <button
+                                    onClick={(e) => showAlertDetail(['Affectation forcée manuellement — les contraintes de compétences ou de disponibilité ne sont pas respectées.'], e)}
+                                    className="cursor-pointer"
+                                    title="Affectation forcée — cliquez pour plus de détails"
+                                  >
+                                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                                  </button>
+                                )}
+                                {!a.isForced && a.warnings.length > 0 && (
+                                  <button
+                                    onClick={(e) => showAlertDetail(a.warnings, e)}
+                                    className="cursor-pointer"
+                                    title={a.warnings.join(' | ') + ' — cliquez pour plus de détails'}
+                                  >
+                                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                                  </button>
+                                )}
+                                <button onClick={() => handleRemoveAssignment(a.id)} className="text-red-400 hover:text-red-600">
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                              {renderEmployeeSkills(a.employeeId)}
                             </div>
                           ))}
                           {!isFull && Array.from({ length: slot.headcount - assigned.length }).map((_, i) => (
@@ -247,9 +355,11 @@ export function PlanningDetailPage() {
         </div>
       )}
 
+      {/* Vue par employé */}
       {viewMode === 'byEmployee' && (
         <div className="space-y-4">
           {Array.from(employeeAssignments.entries()).map(([empId, assignments]) => {
+            const emp = employeeSkillsMap.get(empId);
             const totalHours = assignments.reduce((sum, a) => {
               if (!a.startTime || !a.endTime) return sum;
               const [sh, sm] = a.startTime.split(':').map(Number);
@@ -258,10 +368,21 @@ export function PlanningDetailPage() {
             }, 0);
             return (
               <div key={empId} className="card p-5">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-1">
                   <h3 className="font-semibold">{assignments[0]?.employeeName}</h3>
                   <span className="badge-blue">{totalHours.toFixed(1)}h cumulées</span>
                 </div>
+                {emp && emp.skillRatings.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {emp.skillRatings.sort((a, b) => b.rating - a.rating).map((sr) => (
+                      <span key={sr.skillId} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600"
+                        title={`${sr.skillName} — Niveau ${sr.rating}/5`}>
+                        {sr.skillName}
+                        <span className="font-bold text-amber-600">{sr.rating}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                   {assignments.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map((a) => (
                     <div key={a.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
@@ -269,6 +390,17 @@ export function PlanningDetailPage() {
                       <span className="text-gray-500">{a.date && new Date(a.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' })}</span>
                       <span>{a.startTime}—{a.endTime}</span>
                       <span className="font-medium">{a.positionName}</span>
+                      {(a.isForced || a.warnings.length > 0) && (
+                        <button
+                          onClick={(e) => showAlertDetail(
+                            a.isForced ? ['Affectation forcée manuellement'] : a.warnings, e
+                          )}
+                          title={a.isForced ? 'Affectation forcée' : a.warnings.join(' | ')}
+                          className="cursor-pointer"
+                        >
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -278,6 +410,7 @@ export function PlanningDetailPage() {
         </div>
       )}
 
+      {/* Vue par poste */}
       {viewMode === 'byPosition' && (
         <div className="space-y-4">
           {Array.from(positionAssignments.entries()).map(([posName, assignments]) => (
@@ -289,10 +422,24 @@ export function PlanningDetailPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                 {assignments.sort((a, b) => (a.date || '').localeCompare(b.date || '')).map((a) => (
-                  <div key={a.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
-                    <span className="text-gray-500">{a.date && new Date(a.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' })}</span>
-                    <span>{a.startTime}—{a.endTime}</span>
-                    <span className="font-medium">{a.employeeName}</span>
+                  <div key={a.id} className="flex flex-col p-2 bg-gray-50 rounded text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">{a.date && new Date(a.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' })}</span>
+                      <span>{a.startTime}—{a.endTime}</span>
+                      <span className="font-medium">{a.employeeName}</span>
+                      {(a.isForced || a.warnings.length > 0) && (
+                        <button
+                          onClick={(e) => showAlertDetail(
+                            a.isForced ? ['Affectation forcée manuellement'] : a.warnings, e
+                          )}
+                          title={a.isForced ? 'Affectation forcée' : a.warnings.join(' | ')}
+                          className="cursor-pointer"
+                        >
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                        </button>
+                      )}
+                    </div>
+                    {renderEmployeeSkills(a.employeeId)}
                   </div>
                 ))}
               </div>
@@ -301,7 +448,8 @@ export function PlanningDetailPage() {
         </div>
       )}
 
-      <Modal isOpen={assignModal !== null} onClose={() => setAssignModal(null)} title="Affecter un employé" size="sm">
+      {/* Modal affectation manuelle — avec compétences */}
+      <Modal isOpen={assignModal !== null} onClose={() => setAssignModal(null)} title="Affecter un employé" size="md">
         <div className="space-y-4">
           <div>
             <label className="label">Employé</label>
@@ -309,8 +457,9 @@ export function PlanningDetailPage() {
               onChange={(e) => setSelectedEmployee(parseInt(e.target.value))}>
               {employees.map((e) => <option key={e.id} value={e.id}>{e.firstName} {e.lastName}</option>)}
             </select>
+            {selectedEmployee > 0 && renderEmployeeSkillsDetail(selectedEmployee)}
           </div>
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-end gap-3 pt-2">
             <button onClick={() => setAssignModal(null)} className="btn-secondary">Annuler</button>
             <button onClick={() => assignModal && handleManualAssign(assignModal)} className="btn-primary">Affecter</button>
           </div>

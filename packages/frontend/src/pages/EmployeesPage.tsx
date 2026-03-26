@@ -1,12 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Users } from 'lucide-react';
+import { Plus, Search, Users, Download, FileSpreadsheet } from 'lucide-react';
 import { api } from '../services/api.js';
 import { Modal } from '../components/ui/Modal.js';
 import { EmptyState } from '../components/ui/EmptyState.js';
 import { PageLoader } from '../components/ui/LoadingSpinner.js';
+import { useAuthStore } from '../store/auth.store.js';
+import { exportEmployeesToPdf, exportEmployeesToExcel } from '../utils/exportEmployees.js';
 import { CONTRACT_TYPES, EMPLOYEE_STATUSES } from '@planning/shared';
-import type { Employee, ContractType, EmployeeStatus } from '@planning/shared';
+import type { Employee, EmployeeWithDetails, ContractType, EmployeeStatus } from '@planning/shared';
 import toast from 'react-hot-toast';
 
 const contractColors: Record<ContractType, string> = {
@@ -14,7 +16,9 @@ const contractColors: Record<ContractType, string> = {
 };
 
 export function EmployeesPage() {
+  const { user } = useAuthStore();
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employeesDetailed, setEmployeesDetailed] = useState<EmployeeWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterContract, setFilterContract] = useState<ContractType | ''>('');
@@ -29,8 +33,12 @@ export function EmployeesPage() {
 
   const fetchEmployees = useCallback(async () => {
     try {
-      const data = await api.get<Employee[]>('/employees');
+      const [data, detailed] = await Promise.all([
+        api.get<Employee[]>('/employees'),
+        api.get<EmployeeWithDetails[]>('/employees?detailed=true'),
+      ]);
       setEmployees(data);
+      setEmployeesDetailed(detailed);
     } finally {
       setLoading(false);
     }
@@ -60,6 +68,16 @@ export function EmployeesPage() {
     return true;
   });
 
+  const filteredDetailed = employeesDetailed.filter((e) => {
+    const name = `${e.firstName} ${e.lastName}`.toLowerCase();
+    if (search && !name.includes(search.toLowerCase()) && !e.email.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterContract && e.contractType !== filterContract) return false;
+    if (filterStatus && e.status !== filterStatus) return false;
+    return true;
+  });
+
+  const isAdmin = user?.role === 'admin';
+
   if (loading) return <PageLoader />;
 
   return (
@@ -69,7 +87,15 @@ export function EmployeesPage() {
           <h1 className="text-2xl font-bold">Employés</h1>
           <p className="text-gray-500 mt-1">{employees.length} employé(s) enregistré(s)</p>
         </div>
-        <button onClick={() => setModalOpen(true)} className="btn-primary"><Plus className="w-4 h-4" /> Ajouter</button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => exportEmployeesToPdf(filteredDetailed, isAdmin)} className="btn-secondary">
+            <Download className="w-4 h-4" /> PDF
+          </button>
+          <button onClick={() => exportEmployeesToExcel(filteredDetailed, isAdmin)} className="btn-secondary">
+            <FileSpreadsheet className="w-4 h-4" /> Excel
+          </button>
+          <button onClick={() => setModalOpen(true)} className="btn-primary"><Plus className="w-4 h-4" /> Ajouter</button>
+        </div>
       </div>
 
       <div className="card p-4 mb-6">
